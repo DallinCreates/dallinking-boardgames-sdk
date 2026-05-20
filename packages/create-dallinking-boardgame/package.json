@@ -1,19 +1,11 @@
 {
-  "name": "@dallinking/boardgame-devkit",
+  "name": "create-dallinking-boardgame",
   "version": "0.0.1",
-  "description": "Development tools and utilities for dallinking boardgames",
+  "description": "Create a new dallinking boardgame project",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "type": "module",
   "bin": {
-    "boardgame-devkit": "./dist/cli.cjs"
-  },
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
-    }
+    "create-dallinking-boardgame": "./dist/cli.cjs"
   },
   "scripts": {
     "build": "echo 'Build configured'",
@@ -22,14 +14,14 @@
   },
   "files": [
     "dist",
+    "templates",
     "README.md"
   ],
   "keywords": [
     "boardgame",
     "dallinking",
-    "sdk",
-    "devkit",
-    "cli"
+    "create-app",
+    "scaffolding"
   ],
   "author": "Dallin King",
   "license": "MIT",

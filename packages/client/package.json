@@ -1,5 +1,35 @@
 {
   "name": "@dallinking/boardgame-client",
+  "version": "0.0.1",
+  "description": "Client-side utilities for dallinking boardgames",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "echo 'Build configured'",
+    "test": "echo 'Tests configured'",
+    "dev": "echo 'Dev server configured'"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "boardgame",
+    "dallinking",
+    "sdk",
+    "client"
+  ],
+  "author": "Dallin King",
+  "license": "MIT",
+  "devDependencies": {},
   "dependencies": {
     "@dallinking/boardgame-server": "*"
   }
