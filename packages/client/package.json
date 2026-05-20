@@ -1,0 +1,6 @@
+{
+  "name": "@dallinking/boardgame-client",
+  "dependencies": {
+    "@dallinking/boardgame-server": "*"
+  }
+}
