@@ -1,0 +1,39 @@
+name: Publish SDK to GitHub Packages
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on release tags like v1.0.0, v0.0.1
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@DallinCreates'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Build All SDK Packages
+        run: npm run build
+
+      - name: Publish to GitHub Packages
+        run: npm publish --workspaces
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }} # Automatically injected by GitHub Actions

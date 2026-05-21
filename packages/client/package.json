@@ -1,5 +1,5 @@
 {
-  "name": "@dallinking/boardgame-client",
+  "name": "@DallinCreates/boardgame-client",
   "version": "0.0.1",
   "description": "Client-side utilities for dallinking boardgames",
   "main": "./dist/index.cjs",
@@ -29,8 +29,11 @@
   ],
   "author": "Dallin King",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "devDependencies": {},
   "dependencies": {
-    "@dallinking/boardgame-server": "*"
+    "@DallinCreates/boardgame-server": "*"
   }
 }
