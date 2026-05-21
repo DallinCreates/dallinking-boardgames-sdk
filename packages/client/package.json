@@ -1,5 +1,5 @@
 {
-  "name": "@DallinCreates/boardgame-client",
+  "name": "@dallincreates/boardgame-client",
   "version": "0.0.1",
   "description": "Client-side utilities for dallinking boardgames",
   "main": "./dist/index.cjs",
@@ -34,6 +34,6 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "@DallinCreates/boardgame-server": "*"
+    "@dallincreates/boardgame-server": "*"
   }
 }
