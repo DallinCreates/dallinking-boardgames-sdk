@@ -1,5 +1,5 @@
 {
-  "name": "create-dallinking-boardgame",
+  "name": "@DallinCreates/create-dallinking-boardgame",
   "version": "0.0.1",
   "description": "Create a new dallinking boardgame project",
   "main": "./dist/index.cjs",
@@ -25,6 +25,9 @@
   ],
   "author": "Dallin King",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "devDependencies": {},
   "dependencies": {}
 }

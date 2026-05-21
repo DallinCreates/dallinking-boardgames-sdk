@@ -37,13 +37,13 @@ export function scaffoldProject(projectDir) {
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@dallinking/boardgame-client": "latest"
+    "@DallinCreates/boardgame-client": "latest"
   },
   "devDependencies": {
     "vite": "^5.4.0",
     "@vitejs/plugin-react": "^4.3.0",
     "esbuild": "^0.20.0",
-    "@dallinking/boardgame-server": "latest"
+    "@DallinCreates/boardgame-server": "latest"
   }
 }`;
 
@@ -106,8 +106,8 @@ export default defineConfig({
   </body>
 </html>`;
 
-  // 6. src/engine.js (Backend engine extending @dallinking/boardgame-server)
-  const engineContent = `import { BaseGameEngine } from '@dallinking/boardgame-server';
+  // 6. src/engine.js (Backend engine extending @DallinCreates/boardgame-server)
+  const engineContent = `import { BaseGameEngine } from '@DallinCreates/boardgame-server';
 
 export default class ${projectName.charAt(0).toUpperCase() + projectName.slice(1)}Engine extends BaseGameEngine {
   onInit() {
@@ -186,7 +186,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
   // 8. src/board/App.jsx (Board React Component using hook)
   const boardAppContent = `import React from 'react';
-import { useBoardgame } from '@dallinking/boardgame-client';
+import { useBoardgame } from '@DallinCreates/boardgame-client';
 
 export default function App() {
   const { state, roomPlayers, statusMessage, sendAction } = useBoardgame({
@@ -234,7 +234,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
   // 10. src/player/App.jsx (Player Controller React Component using hook)
   const playerAppContent = `import React from 'react';
-import { useBoardgame } from '@dallinking/boardgame-client';
+import { useBoardgame } from '@DallinCreates/boardgame-client';
 
 export default function App() {
   const { state, statusMessage, sendAction } = useBoardgame({
