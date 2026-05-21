@@ -30,7 +30,7 @@ export function scaffoldProject(projectDir) {
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:engine": "esbuild src/engine.js --bundle --outfile=dist/engine.js --platform=node --format=cjs --sourcemap",
+    "build:engine": "esbuild src/engine.js --bundle --outfile=dist/engine.cjs --platform=node --format=cjs --sourcemap",
     "build:all": "npm run build && npm run build:engine",
     "preview": "vite preview"
   },
