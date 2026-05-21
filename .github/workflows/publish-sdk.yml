@@ -36,4 +36,4 @@ jobs:
       - name: Publish to GitHub Packages
         run: npm publish --workspaces --access restricted
         env:
-          NPM_ACCESS_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ secrets.HP_PUBLISH_TOKEN }}
