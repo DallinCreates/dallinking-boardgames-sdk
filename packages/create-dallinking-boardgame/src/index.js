@@ -37,13 +37,13 @@ export function scaffoldProject(projectDir) {
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@dallinking/boardgame-client": "^0.0.1"
+    "@dallinking/boardgame-client": "latest"
   },
   "devDependencies": {
     "vite": "^5.4.0",
     "@vitejs/plugin-react": "^4.3.0",
     "esbuild": "^0.20.0",
-    "@dallinking/boardgame-server": "^0.0.1"
+    "@dallinking/boardgame-server": "latest"
   }
 }`;
 
