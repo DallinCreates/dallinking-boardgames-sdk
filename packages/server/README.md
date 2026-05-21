@@ -77,6 +77,6 @@ interface ActionMeta {
 
 This package also exports common, highly optimized utilities for tabletop mechanics:
 
-- shuffle(array): Cryptographically safe array shuffler.
+- shuffle(array): Array shuffler for general-purpose gameplay use; not cryptographically secure by default.
 - ensurePlayer(state, id): Safely initializes a player in your state object.
 - GAME_STATUS / MESSAGE_TYPE: Standardized string constants for routing.
