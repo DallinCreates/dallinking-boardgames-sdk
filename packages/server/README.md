@@ -4,7 +4,7 @@ The authoritative backend engine for the Dallin King Boardgames SDK.
 
 This package provides the base classes and TypeScript interfaces required to write state-driven, turn-based game logic that seamlessly synchronizes between a central Host Board and multiple Mobile Player controllers.
 
-## Instalization
+## Installation
 
 ```bash
 npm install @dallinking/boardgame-server
