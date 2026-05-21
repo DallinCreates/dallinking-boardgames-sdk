@@ -36,4 +36,4 @@ jobs:
       - name: Publish to GitHub Packages
         run: npm publish --workspaces
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }} # Automatically injected by GitHub Actions
+          NODE_AUTH_TOKEN: ${{ github.token }}
