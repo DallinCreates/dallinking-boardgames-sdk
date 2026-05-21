@@ -1,6 +1,6 @@
 {
   "name": "@dallincreates/create-dallinking-boardgame",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Create a new dallinking boardgame project",
   "main": "./dist/index.cjs",
   "type": "module",
