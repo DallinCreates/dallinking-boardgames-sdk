@@ -77,7 +77,7 @@ export abstract class BaseGameEngine {
   /**
    * Triggered for any incoming message starting with "game:*".
    * This is the main router for developer game logic.
-   * * @param actionType The specific action string (e.g., "game:set-clue")
+   * @param actionType The specific action string (e.g., "game:set-clue")
    * @param payload The data sent by the client
    * @param meta System-injected metadata (playerId, isBoard, isVip, etc.)
    */
