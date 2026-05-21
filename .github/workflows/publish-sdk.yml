@@ -20,9 +20,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@DallinCreates'
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: "@dallincreates"
 
       - name: Install Monorepo Dependencies
         run: npm ci
