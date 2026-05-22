@@ -1,6 +1,6 @@
 {
   "name": "@dallincreates/boardgame-devkit",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Development tools and utilities for dallinking boardgames",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "echo 'Build configured'",
+    "build": "node ../../scripts/build-package.mjs",
     "test": "echo 'Tests configured'",
     "dev": "echo 'Dev server configured'",
     "prepublishOnly": "npm run build"

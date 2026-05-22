@@ -1,6 +1,6 @@
 {
   "name": "@dallincreates/create-dallinking-boardgame",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Create a new dallinking boardgame project",
   "main": "./dist/index.cjs",
   "type": "module",
@@ -8,7 +8,7 @@
     "create-dallinking-boardgame": "./dist/cli.cjs"
   },
   "scripts": {
-    "build": "echo 'Build configured'",
+    "build": "node ../../scripts/build-package.mjs",
     "test": "echo 'Tests configured'",
     "dev": "echo 'Dev server configured'",
     "prepublishOnly": "npm run build"

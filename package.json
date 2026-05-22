@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces"
+    "test": "npm run test --workspaces",
+    "prepublishOnly": "npm run build --workspaces"
   },
   "devDependencies": {
     "eslint": "^8.0.0",

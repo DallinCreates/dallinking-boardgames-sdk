@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "moduleResolution": "Node",
+    "rootDir": "./src",
+    "target": "ES2022"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", ".build-temp"]
+}

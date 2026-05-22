@@ -1,6 +1,6 @@
 {
   "name": "@dallincreates/boardgame-client",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Client-side utilities for dallinking boardgames",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
@@ -13,10 +13,11 @@
     }
   },
   "scripts": {
-    "build": "echo 'Build configured'",
-    "test": "echo 'Tests configured'",
-    "dev": "echo 'Dev server configured'",
+    "build": "node ../../scripts/build-package.mjs",
     "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
   },
   "files": [
     "dist",
