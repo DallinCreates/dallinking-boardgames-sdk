@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { 
+  createContext, 
+  useContext, 
+  useEffect, 
+  useMemo, 
+  useCallback, 
+  useRef 
+} from 'react';
 
 export const SOCKET_MESSAGE_SOURCE = 'socket';
 
@@ -36,7 +43,6 @@ export function createIframeGameBridge({ onIncomingMessage, targetOrigin = '*' }
     return () => window.removeEventListener('message', handleIncoming);
   };
 
-  // Expects exactly the shape of the object being sent
   const sendToParent = ({ type, payload = {}, meta = {} }) => {
     if (window.parent && typeof window.parent.postMessage === 'function') {
       window.parent.postMessage(
@@ -52,26 +58,23 @@ export function createIframeGameBridge({ onIncomingMessage, targetOrigin = '*' }
   };
 }
 
-/**
- * React hook to easily wire up an iframe board game to the parent container.
- * 
- * @param {Object} options
- * @param {Function} options.onMessage - Callback to handle incoming messages (game:* and system:*)
- * @param {string} [options.targetOrigin='*'] 
- */
-export function useBoardgame({ onMessage, targetOrigin = '*' } = {}) {
-  const bridge = useMemo(
-    () =>
-      createIframeGameBridge({
-        targetOrigin,
-        onIncomingMessage: (msg) => {
-          if (typeof onMessage === 'function') {
-            onMessage(msg);
-          }
-        },
-      }),
-    [targetOrigin, onMessage]
-  );
+// ------------------------------------------------------------------
+// REACT CONTEXT & PROVIDER
+// ------------------------------------------------------------------
+
+export const BoardgameContext = createContext(null);
+
+export function BoardgameProvider({ children, targetOrigin = '*' }) {
+  const listenersRef = useRef(new Set());
+
+  const bridge = useMemo(() => {
+    return createIframeGameBridge({
+      targetOrigin,
+      onIncomingMessage: (msg) => {
+        listenersRef.current.forEach((listener) => listener(msg));
+      },
+    });
+  }, [targetOrigin]);
 
   useEffect(() => {
     return bridge.startListening();
@@ -84,10 +87,49 @@ export function useBoardgame({ onMessage, targetOrigin = '*' } = {}) {
     [bridge]
   );
 
+  const subscribe = useCallback((listener) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const contextValue = useMemo(() => ({ send, subscribe }), [send, subscribe]);
+
+  return (
+    <BoardgameContext.Provider value={contextValue}>
+      {children}
+    </BoardgameContext.Provider>
+  );
+}
+
+/**
+ * React hook to access the game bridge. 
+ * Must be used inside a <BoardgameProvider>.
+ * 
+ * @param {Object} options
+ * @param {Function} [options.onMessage] - Callback to handle incoming messages
+ */
+export function useBoardgame({ onMessage } = {}) {
+  const context = useContext(BoardgameContext);
+
+  if (!context) {
+    throw new Error('useBoardgame must be used within a <BoardgameProvider>');
+  }
+
+  const { send, subscribe } = context;
+
+  useEffect(() => {
+    if (typeof onMessage === 'function') {
+      return subscribe(onMessage);
+    }
+  }, [onMessage, subscribe]);
+
   return { send };
 }
 
 export default {
   createIframeGameBridge,
+  BoardgameProvider,
   useBoardgame,
 };
