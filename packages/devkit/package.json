@@ -18,7 +18,8 @@
   "scripts": {
     "build": "echo 'Build configured'",
     "test": "echo 'Tests configured'",
-    "dev": "echo 'Dev server configured'"
+    "dev": "echo 'Dev server configured'",
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "dist",

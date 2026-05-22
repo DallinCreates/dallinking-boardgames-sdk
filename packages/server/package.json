@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "test": "echo 'Tests configured'"
+    "test": "echo 'Tests configured'",
+    "prepublishOnly": "npm run build"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
