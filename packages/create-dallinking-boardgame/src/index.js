@@ -37,17 +37,17 @@ export function scaffoldProject(projectDir) {
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@DallinCreates/boardgame-client": "latest"
+    "@dallincreates/boardgame-client": "latest",
+    "@dallincreates/boardgame-server": "latest"
   },
   "devDependencies": {
     "vite": "^5.4.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "esbuild": "^0.20.0",
-    "@DallinCreates/boardgame-server": "latest"
+    "esbuild": "^0.20.0"
   }
 }`;
 
-  // 2. game.config.json (dynamic metadata!)
+  // 2. game.config.json
   const gameConfigContent = `{
   "id": "${projectName.toLowerCase().replace(/[^a-z0-9_-]/g, '')}",
   "name": "${projectName.charAt(0).toUpperCase() + projectName.slice(1)}",
@@ -56,23 +56,24 @@ export function scaffoldProject(projectDir) {
   "version": "1.0.0"
 }`;
 
-  // 3. vite.config.js (configures multi-page board vs player builds)
+  // 3. vite.config.js
   const viteConfigContent = `import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
+  base: "./",
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@shared': resolve(__dirname, 'src/shared'),
+    }
+  },
   build: {
     rollupOptions: {
       input: {
         board: resolve(__dirname, 'board.html'),
         player: resolve(__dirname, 'player.html'),
-      },
-      output: {
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
       }
     }
   }
@@ -106,70 +107,73 @@ export default defineConfig({
   </body>
 </html>`;
 
-  // 6. src/engine.js (Backend engine extending @DallinCreates/boardgame-server)
-  const engineContent = `import { BaseGameEngine } from '@DallinCreates/boardgame-server';
+  const engineContent = `import { BaseGameEngine } from '@dallincreates/boardgame-server';
 
-export default class ${projectName.charAt(0).toUpperCase() + projectName.slice(1)}Engine extends BaseGameEngine {
+export default class Engine extends BaseGameEngine {
   onInit() {
-    // Set up your base state
     this.state = {
       status: 'lobby',
       score: {},
+      players: [],
       winner: null
     };
   }
 
+  // Helper function to send standardized state updates to everyone
+  broadcastState() {
+    this.broadcastRoomUpdate({
+      type: 'game:sync_state',
+      payload: { state: this.state }
+    });
+  }
+
   onPlayerJoin(playerId, name, isLateJoin) {
     if (playerId === this.boardId) return;
-    this.state.score[playerId] = 0;
-    this.broadcastRoomUpdate({
-      type: 'game:state',
-      state: this.state
-    });
+    
+    // Prevent duplicates if a player reconnects
+    if (!this.state.players.find(p => p.id === playerId)) {
+      this.state.players.push({ id: playerId, name });
+      this.state.score[playerId] = 0;
+    }
+    
+    this.broadcastState();
   }
 
   onPlayerLeave(playerId) {
     delete this.state.score[playerId];
-    this.broadcastRoomUpdate({
-      type: 'game:state',
-      state: this.state
-    });
+    this.state.players = this.state.players.filter(p => p.id !== playerId);
+    this.broadcastState();
   }
 
   onGameStart() {
-    this.hasStarted = true;
+    super.onGameStart(); // Sets this.hasStarted = true
     this.state.status = 'playing';
-    this.broadcastRoomUpdate({
-      type: 'game:state',
-      state: this.state
-    });
+    this.broadcastState();
   }
 
   processAction(actionType, payload, meta) {
-    const { playerId } = meta;
+    const { playerId, isBoard, isVip } = meta;
 
     switch (actionType) {
-      case 'game:add-point':
+      case 'game:add_point':
         if (this.state.status !== 'playing') return;
         this.state.score[playerId] = (this.state.score[playerId] || 0) + 1;
-        this.broadcastRoomUpdate({
-          type: 'game:state',
-          state: this.state
-        });
+        this.broadcastState();
         break;
 
       case 'game:reset':
-        if (!meta.isVip && !meta.isBoard) return;
+        if (!isVip && !isBoard) return;
         this.onInit();
-        this.broadcastRoomUpdate({
-          type: 'game:state',
-          state: this.state
-        });
+        this.broadcastState();
         break;
 
       default:
         console.warn(\`[Engine] Unhandled action: \${actionType}\`);
     }
+  }
+
+  destroy() {
+    // Clean up any intervals or timeouts here when the game session ends
   }
 }`;
 
@@ -177,20 +181,34 @@ export default class ${projectName.charAt(0).toUpperCase() + projectName.slice(1
   const boardMainContent = `import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import { BoardgameProvider } from '@dallincreates/boardgame-client';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <BoardgameProvider>
+      <App />
+    </BoardgameProvider>
   </React.StrictMode>
 );`;
 
-  // 8. src/board/App.jsx (Board React Component using hook)
-  const boardAppContent = `import React from 'react';
-import { useBoardgame } from '@DallinCreates/boardgame-client';
+  // 8. src/board/App.jsx
+  const boardAppContent = `import React, { useState } from 'react';
+import { useBoardgame } from '@dallincreates/boardgame-client';
 
 export default function App() {
-  const { state, roomPlayers, statusMessage, sendAction } = useBoardgame({
-    initialState: { status: 'lobby', score: {} }
+  const [state, setState] = useState({ status: 'lobby', score: {}, players: [] });
+  const [statusMessage, setStatusMessage] = useState('Waiting for players to join...');
+
+  const { send } = useBoardgame({
+    onMessage: (msg) => {
+      if (msg.type === 'game:sync_state') {
+        setState(msg.payload.state);
+        setStatusMessage('Sync complete.');
+      }
+      if (msg.type === 'system:error') {
+        setStatusMessage(\`Error: \${msg.payload.message}\`);
+      }
+    }
   });
 
   return (
@@ -200,18 +218,18 @@ export default function App() {
       <p>System message: {statusMessage}</p>
       <hr style={{ borderColor: '#333' }} />
 
-      <h2>Players in Room ({roomPlayers.length})</h2>
+      <h2>Players in Room ({state.players?.length || 0})</h2>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {roomPlayers.map((player) => (
+        {(state.players || []).map((player) => (
           <li key={player.id} style={{ margin: '0.5rem 0', fontSize: '1.2rem' }}>
-            👤 {player.name} {player.isVip ? '⭐️ (VIP)' : ''} — Score: {state.score[player.id] || 0}
+            👤 {player.name} — Score: {state.score[player.id] || 0}
           </li>
         ))}
       </ul>
 
       {state.status === 'playing' && (
         <button 
-          onClick={() => sendAction('game:reset')}
+          onClick={() => send({ type: 'game:reset' })}
           style={{ padding: '10px 20px', fontSize: '1rem', cursor: 'pointer', background: '#d32f2f', color: 'white', border: 'none', borderRadius: '4px' }}
         >
           Reset Game
@@ -225,20 +243,31 @@ export default function App() {
   const playerMainContent = `import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import { BoardgameProvider } from '@dallincreates/boardgame-client';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <BoardgameProvider>
+      <App />
+    </BoardgameProvider>
   </React.StrictMode>
 );`;
 
-  // 10. src/player/App.jsx (Player Controller React Component using hook)
-  const playerAppContent = `import React from 'react';
-import { useBoardgame } from '@DallinCreates/boardgame-client';
+  // 10. src/player/App.jsx
+  const playerAppContent = `import React, { useState } from 'react';
+import { useBoardgame } from '@dallincreates/boardgame-client';
 
 export default function App() {
-  const { state, statusMessage, sendAction } = useBoardgame({
-    initialState: { status: 'lobby', score: {} }
+  const [state, setState] = useState({ status: 'lobby', score: {} });
+  const [statusMessage, setStatusMessage] = useState('Waiting for game to load...');
+
+  const { send } = useBoardgame({
+    onMessage: (msg) => {
+      if (msg.type === 'game:sync_state') {
+        setState(msg.payload.state);
+        setStatusMessage('Sync complete.');
+      }
+    }
   });
 
   return (
@@ -251,7 +280,7 @@ export default function App() {
       ) : (
         <div style={{ margin: '2rem 0' }}>
           <button 
-            onClick={() => sendAction('game:add-point')}
+            onClick={() => send({ type: 'game:add_point' })}
             style={{ padding: '20px 40px', fontSize: '1.5rem', cursor: 'pointer', background: '#4caf50', color: 'white', border: 'none', borderRadius: '8px', width: '100%', maxWidth: '300px' }}
           >
             Tap to Score!
@@ -268,7 +297,7 @@ export default function App() {
 Interactive multi-player party boardgame scaffolded with \`create-dallinking-boardgame\`.
 
 ## Project Structure
-- \`src/engine.js\` - Authoritative server-side game logic (compiled to CJS for dynamic loading).
+- \`src/engine/engine.js\` - Authoritative server-side game logic (compiled to CJS for dynamic loading).
 - \`src/board/App.jsx\` - React UI displayed on the Big Host screen (e.g. TV).
 - \`src/player/App.jsx\` - React UI displayed on players' mobile devices.
 
@@ -287,10 +316,6 @@ Interactive multi-player party boardgame scaffolded with \`create-dallinking-boa
    \`\`\`bash
    npm run build:all
    \`\`\`
-
-## Publishing to your CDN
-Deploy the compiled assets inside \`dist/\` (specifically \`board.html\`, \`player.html\`, \`assets/\`, and \`engine.js\`) to your CDN under path:
-\`cdn.dallinking.com/boardgames/${projectName.toLowerCase()}/\`
 `;
 
   // Write all files!
@@ -299,7 +324,7 @@ Deploy the compiled assets inside \`dist/\` (specifically \`board.html\`, \`play
   writeFile('vite.config.js', viteConfigContent);
   writeFile('board.html', boardHtmlContent);
   writeFile('player.html', playerHtmlContent);
-  writeFile('src/engine.js', engineContent);
+  writeFile('src/engine/engine.js', engineContent);
   writeFile('src/board/main.jsx', boardMainContent);
   writeFile('src/board/App.jsx', boardAppContent);
   writeFile('src/player/main.jsx', playerMainContent);
@@ -307,7 +332,7 @@ Deploy the compiled assets inside \`dist/\` (specifically \`board.html\`, \`play
   writeFile('README.md', readmeContent);
 
   console.log(`\n🎉 Success! Scaffolded game project at: "${targetDir}"`);
-  console.log(`\nTo get started:\n  cd ${projectDir}\n  npm install\n  npm run dev\n`);
+  console.log(`\nTo get started:\n  cd ${projectName}\n  npm install\n  npm run dev\n`);
 }
 
 export default {
