@@ -38,7 +38,8 @@ export function scaffoldProject(projectDir) {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "@dallincreates/boardgame-client": "latest",
-    "@dallincreates/boardgame-server": "latest"
+    "@dallincreates/boardgame-server": "latest",
+    "@dallincreates/boardgame-devkit": "latest"
   },
   "devDependencies": {
     "vite": "^5.4.0",
