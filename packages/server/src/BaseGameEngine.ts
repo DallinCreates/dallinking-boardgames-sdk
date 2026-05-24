@@ -10,6 +10,11 @@ export interface ActionMeta {
   [key: string]: any;
 }
 
+export interface ConnectionMeta {
+  isBoard: boolean;
+  timestamp: number;
+}
+
 export interface EngineDependencies {
   boardId: string;
   broadcastRoomUpdate: (payload: any) => void;
@@ -72,6 +77,9 @@ export abstract class BaseGameEngine {
    */
   public abstract processAction(actionType: string, payload: any, meta: ActionMeta): void;
 
+  public abstract onReconnect(playerId: string, meta: ActionMeta): void;
+
+  public abstract onDisconnect(playerId: string, meta: ConnectionMeta): void;
   /**
    * Triggered when the room is closed or the board disconnects.
    * Used to clean up intervals, timeouts, or memory.
