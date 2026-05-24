@@ -1,6 +1,6 @@
 {
   "name": "@dallincreates/boardgame-devkit",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Development tools and utilities for dallinking boardgames",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
