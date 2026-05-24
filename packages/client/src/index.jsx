@@ -40,6 +40,12 @@ export function createIframeGameBridge({ onIncomingMessage, targetOrigin = '*' }
 
   const startListening = () => {
     window.addEventListener('message', handleIncoming);
+    if (window.parent && typeof window.parent.postMessage === 'function') {
+      window.parent.postMessage(
+        { source: SOCKET_MESSAGE_SOURCE, message: { type: 'system:ready', payload: {}, meta: {} } },
+        targetOrigin
+      );
+    }
     return () => window.removeEventListener('message', handleIncoming);
   };
 
