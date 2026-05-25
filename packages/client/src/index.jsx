@@ -10,28 +10,38 @@ import {
 export const SOCKET_MESSAGE_SOURCE = 'socket';
 
 export function unwrapGameMessage(data) {
-  if (!data || typeof data !== 'object') {
+  let parsedData = data;
+
+  if (typeof data === 'string') {
+    try {
+      parsedData = JSON.parse(data);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  if (!parsedData || typeof parsedData !== 'object') {
     return null;
   }
 
-  if (data.source === SOCKET_MESSAGE_SOURCE && data.message) {
-    return data.message;
+  if (parsedData.source === SOCKET_MESSAGE_SOURCE && parsedData.message) {
+    return parsedData.message;
   }
 
-  return data;
+  return parsedData;
 }
 
 /**
  * CHILD IFRAME BRIDGE
- * Sits inside the game. Filters out server noise (room:*) and securely 
- * packages outbound data to send back to the parent.
+ * Sits inside the game. Filters out unnecessary server noise but passes
+ * game payloads and crucial state syncs securely to the game engine.
  */
 export function createIframeGameBridge({ onIncomingMessage, targetOrigin = '*' }) {
   const handleIncoming = (event) => {
     const msg = unwrapGameMessage(event.data);
     if (!msg || !msg.type) return;
 
-    if (msg.type.startsWith('room:')) {
+    if (msg.type.startsWith('room:') && msg.type !== 'room:update' && msg.type !== 'room:reconnected') {
       return; 
     }
 
@@ -40,6 +50,7 @@ export function createIframeGameBridge({ onIncomingMessage, targetOrigin = '*' }
 
   const startListening = () => {
     window.addEventListener('message', handleIncoming);
+    
     if (window.parent && typeof window.parent.postMessage === 'function') {
       window.parent.postMessage(
         { source: SOCKET_MESSAGE_SOURCE, message: { type: 'system:ready', payload: {}, meta: {} } },
@@ -112,8 +123,7 @@ export function BoardgameProvider({ children, targetOrigin = '*' }) {
 /**
  * React hook to access the game bridge. 
  * Must be used inside a <BoardgameProvider>.
- * 
- * @param {Object} options
+ * * @param {Object} options
  * @param {Function} [options.onMessage] - Callback to handle incoming messages
  */
 export function useBoardgame({ onMessage } = {}) {
@@ -124,12 +134,21 @@ export function useBoardgame({ onMessage } = {}) {
   }
 
   const { send, subscribe } = context;
+  const onMessageRef = useRef(onMessage);
+  
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   useEffect(() => {
-    if (typeof onMessage === 'function') {
-      return subscribe(onMessage);
-    }
-  }, [onMessage, subscribe]);
+    const handleMessage = (msg) => {
+      if (typeof onMessageRef.current === 'function') {
+        onMessageRef.current(msg);
+      }
+    };
+
+    return subscribe(handleMessage);
+  }, [subscribe]);
 
   return { send };
 }
