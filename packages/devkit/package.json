@@ -38,5 +38,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "devDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
 }

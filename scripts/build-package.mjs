@@ -89,14 +89,19 @@ function ensureCleanDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
-function rewriteModuleSpecifiers(content, emittedRelativePaths, targetExtension) {
+function rewriteModuleSpecifiers(content, emittedRelativePaths, targetExtension, relativeFromDir) {
   let rewritten = content;
 
   for (const relativePath of emittedRelativePaths) {
-    const sourceSpecifier = `./${relativePath.split(path.sep).join('/')}`;
-    const targetSpecifier = sourceSpecifier.replace(/\.js$/, `.${targetExtension}`);
-    rewritten = rewritten.split(`"${sourceSpecifier}"`).join(`"${targetSpecifier}"`);
-    rewritten = rewritten.split(`'${sourceSpecifier}'`).join(`'${targetSpecifier}'`);
+    const targetPath = relativePath.split(path.sep).join('/');
+    const sourceSpecifier = `./${path.posix.relative(relativeFromDir.split(path.sep).join('/'), targetPath)}`;
+    const normalizedSourceSpecifier = sourceSpecifier.startsWith('./') || sourceSpecifier.startsWith('../')
+      ? sourceSpecifier
+      : `./${sourceSpecifier}`;
+    const targetSpecifier = normalizedSourceSpecifier.replace(/\.js$/, `.${targetExtension}`);
+
+    rewritten = rewritten.split(`"${normalizedSourceSpecifier}"`).join(`"${targetSpecifier}"`);
+    rewritten = rewritten.split(`'${normalizedSourceSpecifier}'`).join(`'${targetSpecifier}'`);
   }
 
   return rewritten;
@@ -115,7 +120,12 @@ function emitFormat(moduleKind, targetExtension, tempDir) {
     fs.mkdirSync(targetDirectory, { recursive: true });
 
     const fileContent = fs.readFileSync(emittedFile, 'utf8');
-    const rewrittenContent = rewriteModuleSpecifiers(fileContent, emittedRelativePaths, targetExtension);
+    const rewrittenContent = rewriteModuleSpecifiers(
+      fileContent,
+      emittedRelativePaths,
+      targetExtension,
+      path.relative(tempDir, path.dirname(emittedFile))
+    );
     fs.writeFileSync(targetFile, rewrittenContent, 'utf8');
   }
 }

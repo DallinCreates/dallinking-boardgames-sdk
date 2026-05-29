@@ -3,6 +3,10 @@
  * Development tools and utilities for dallinking boardgames
  */
 
+import { runSandbox } from './sandbox.js';
+
+export { runSandbox };
+
 /**
  * Initialize devkit utilities
  * @returns {Object} Devkit utilities
@@ -15,4 +19,5 @@ export function initDevkit() {
 
 export default {
   initDevkit,
+  runSandbox,
 };
