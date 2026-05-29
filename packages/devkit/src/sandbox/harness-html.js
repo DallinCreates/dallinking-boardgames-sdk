@@ -56,14 +56,36 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
             
             /* Iframes */
             .iframe-container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #0f172a; overflow: auto;}
-            .iframe-wrapper { display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
-            iframe { border: none; background: white; transition: all 0.3s ease;}
+            .iframe-wrapper { display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; max-width: 100%; max-height: 100%; }
+            iframe { border: none; background: white; transition: all 0.3s ease; box-sizing: border-box; }
             body[data-device="responsive"] .iframe-wrapper { width: 100%; height: 100%; }
             body[data-device="responsive"] iframe { width: 100%; height: 100%; border-radius: 0; }
-            body[data-device="portrait"] .iframe-wrapper { width: 375px; height: 812px; }
-            body[data-device="portrait"] iframe { width: 375px; height: 812px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 8px solid #334155; }
-            body[data-device="landscape"] .iframe-wrapper { width: 812px; height: 375px; }
-            body[data-device="landscape"] iframe { width: 812px; height: 375px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: 8px solid #334155; }
+            body[data-device="portrait"] .iframe-wrapper {
+                width: min(375px, calc(100% - 24px));
+                max-height: calc(100% - 24px);
+                aspect-ratio: 375 / 812;
+                height: auto;
+            }
+            body[data-device="portrait"] iframe {
+                width: 100%;
+                height: 100%;
+                border-radius: 24px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+                border: 8px solid #334155;
+            }
+            body[data-device="landscape"] .iframe-wrapper {
+                width: min(812px, calc(100% - 24px));
+                max-height: calc(100% - 24px);
+                aspect-ratio: 812 / 375;
+                height: auto;
+            }
+            body[data-device="landscape"] iframe {
+                width: 100%;
+                height: 100%;
+                border-radius: 24px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+                border: 8px solid #334155;
+            }
         </style>
     </head>
     <body data-layout="split" data-device="responsive">
