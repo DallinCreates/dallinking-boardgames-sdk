@@ -11,10 +11,13 @@ export async function startSandboxRuntime({
     previewPort,
     harnessPort,
     GameEngine,
+    isDev,
 }) {
-    console.log(`\n🚀 Starting Static Preview Server...`);
-    const previewProcess = spawn('npm', ['run', 'preview', '--', '--port', previewPort.toString()], { stdio: 'inherit', shell: true });
+    const npmScript = isDev ? 'dev' : 'preview';
+    const serverLabel = isDev ? 'Development' : 'Static Preview';
 
+    console.log(`\n🚀 Starting Static Preview Server...`);
+    const previewProcess = spawn('npm', ['run', npmScript, '--', '--port', previewPort.toString()], { stdio: 'inherit', shell: true });
     const mockRoom = {
         code: 'DEV4',
         gameId: gameName,
