@@ -69,6 +69,39 @@ export abstract class BaseGameEngine {
   }
 
   /**
+   * Returns the state payload delivered to the board screen when it
+   * reconnects or requests a refresh. Defaults to the full engine state;
+   * override it to shape or trim what the board receives.
+   */
+  public getBoardState(): any {
+    return this.state;
+  }
+
+  /**
+   * Returns the state payload delivered to a specific player when they
+   * reconnect or request a refresh. Defaults to the full engine state;
+   * override it to hide secrets other players shouldn't see (roles, hands,
+   * hidden words, etc).
+   */
+  public getPlayerState(playerId: string): any {
+    return this.state;
+  }
+
+  /**
+   * Sends the appropriate snapshot (getPlayerState/getBoardState) to one
+   * client as a "game:sync_state" message. The platform calls this
+   * automatically when a client reconnects or presses the in-game refresh
+   * button; you can also call it yourself after large state transitions.
+   */
+  public sendStateSnapshot(playerId: string, isBoard = false): void {
+    if (isBoard) {
+      this.sendMessageToBoard({ type: 'game:sync_state', payload: { state: this.getBoardState() } });
+    } else {
+      this.sendMessageToPlayer(playerId, { type: 'game:sync_state', payload: { state: this.getPlayerState(playerId) } });
+    }
+  }
+
+  /**
    * Triggered for any incoming message starting with "game:*".
    * This is the main router for developer game logic.
    * @param actionType The specific action string (e.g., "game:set-clue")

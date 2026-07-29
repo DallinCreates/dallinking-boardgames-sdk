@@ -73,6 +73,34 @@ interface ActionMeta {
 }
 ```
 
+## State Snapshots (Reconnect & Refresh)
+
+The platform periodically needs to re-deliver state to a single client: when a player reconnects after a dropped connection, rejoins mid-game, or presses the in-game **Refresh** button. Two overridable getters control what each client receives:
+
+```node
+export class MyCustomGame extends BaseGameEngine {
+  // What the board/host screen receives on reconnect or refresh.
+  getBoardState() {
+    return this.state;
+  }
+
+  // What a single player receives on reconnect or refresh.
+  // Override this to strip out secrets other players shouldn't see.
+  getPlayerState(playerId) {
+    const { secretMap, ...publicState } = this.state;
+    return { ...publicState, myRole: this.state.roles?.[playerId] };
+  }
+}
+```
+
+The defaults return the full `this.state`. The room system calls `sendStateSnapshot(playerId, isBoard)` automatically on reconnect and refresh, which wraps the getter result in a `game:sync_state` message (see `MESSAGE_TYPE.GAME_STATE_SYNC`):
+
+```json
+{ "type": "game:sync_state", "payload": { "state": { /* getter result */ } } }
+```
+
+Your frontends should handle `game:sync_state` and replace their local state with the payload — this is what restores a player's screen after a reconnect.
+
 ## Built-in Utilities
 
 This package also exports common, highly optimized utilities for tabletop mechanics:

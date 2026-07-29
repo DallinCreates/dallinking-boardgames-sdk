@@ -298,8 +298,23 @@ export default class Engine extends BaseGameEngine {
   }
 
   /**
+   * 5b. STATE SNAPSHOTS (RECONNECT / REFRESH)
+   * The platform calls these to re-deliver state to a single client when
+   * they reconnect or press the in-game refresh button. The result is sent
+   * as a "game:sync_state" message. Override getPlayerState to hide
+   * secrets (roles, hands, hidden words) from individual players.
+   */
+  getBoardState() {
+    return this.state;
+  }
+
+  getPlayerState(playerId) {
+    return this.state;
+  }
+
+  /**
    * 6. TRIGGERED ON SOCKET DISCONNECT
-   * Called when a player drops connection. Game logic should usually mark them 
+   * Called when a player drops connection. Game logic should usually mark them
    * offline here rather than deleting them, allowing for \`onReconnect\`.
    */
   onDisconnect(playerId, meta) {
@@ -460,8 +475,9 @@ The server-side system automatically invokes the following class methods on \`sr
 4. **\`processAction(actionType, payload, meta)\`**: The main game router. Fired for any custom \`game:*\` payload sent from the React UI via \`send()\`. The \`meta\` object includes \`{ playerId, isBoard, isVip, timestamp }\`.
 5. **\`onDisconnect(playerId, meta)\`**: Fired when a socket drops. Usually, you should update your internal state to mark the player as offline rather than removing them from the game entirely.
 6. **\`onReconnect(playerId, meta)\`**: Fired when a dropped player returns. Re-mark them as online and push a state sync.
-7. **\`onPlayerLeave(playerId)\`**: Fired upon \`room:leave\` (explicit exit). 
+7. **\`onPlayerLeave(playerId)\`**: Fired upon \`room:leave\` (explicit exit).
 8. **\`destroy()\`**: Fired when the room shuts down. Clean up intervals and memory.
+9. **\`getBoardState()\` / \`getPlayerState(playerId)\`**: Return the state snapshot re-delivered to one client (as a \`game:sync_state\` message) when they reconnect or press the in-game refresh button. Default to \`this.state\`; override \`getPlayerState\` to hide per-player secrets. Frontends must handle \`game:sync_state\` by replacing their local state with \`payload.state\`.
 
 ### Frontend Communication Bridge
 * **Sending Actions:** React components call \`send({ type: ACTION_TYPE.X, payload: Y })\` (via \`useClientState\`). This routes to \`processAction\` in the engine.
