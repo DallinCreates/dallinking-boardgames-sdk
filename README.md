@@ -32,6 +32,12 @@ npm install
 npm run build
 ```
 
+## Links
+
+- [boardgames.dallinking.com](https://boardgames.dallinking.com) — play the games built with this SDK
+- [dallinking.com](https://dallinking.com) — main site
+- [bio.dallinking.com](https://bio.dallinking.com) — about Dallin King
+
 ## License
 
 This project is MIT licensed. Copyright (c) 2026 Dallin King.
