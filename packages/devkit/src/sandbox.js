@@ -5,7 +5,7 @@ import { loadSandboxEngine } from './sandbox/engine-loader.js';
 import { startSandboxRuntime } from './sandbox/runtime.js';
 
 export async function runSandbox({ cwd = process.cwd(), argv = process.argv.slice(2) } = {}) {
-    const { gameName, numPlayers, buildCmd, isDev } = resolveSandboxConfig({ cwd, argv });
+    const { gameName, numPlayers, buildCmd, isDev, hotReload } = resolveSandboxConfig({ cwd, argv });
 
     if (!isDev) {
         console.log(`\n📦 Building Production Distribution Files (npm run ${buildCmd})...`);
@@ -36,5 +36,6 @@ export async function runSandbox({ cwd = process.cwd(), argv = process.argv.slic
         harnessPort: HARNESS_PORT,
         GameEngine,
         isDev,
+        hotReload,
     });
 }

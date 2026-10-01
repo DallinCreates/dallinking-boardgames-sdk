@@ -18,9 +18,13 @@ Everything you need to build, test and publish a game on [boardgames.dallinking.
 | Restart with Play again | [Engine → Play again](./engine.md#play-again) |
 | Handle players dropping, leaving and coming back | [Engine → Disconnects and recovery](./engine.md#disconnects-and-recovery) |
 | Build the shared screen or the phone controls | [Building the board and player apps](./apps.md) |
+| Play sound, music, or a sound on one phone only | [Apps → Sound and vibration](./apps.md#sound-and-vibration), [engine effects](../packages/server/README.md#sound-and-vibration-on-one-screen) |
+| Vibrate a phone for "your turn" or "time's running out" | [Engine effects](../packages/server/README.md#sound-and-vibration-on-one-screen), [client `haptics`](../packages/client/README.md#vibration) |
 | Know which player a phone belongs to | [Messages → Who am I?](./messages.md#clientid-who-am-i) |
 | See every message type | [Messages](./messages.md) |
 | Test with several players on one computer | [Devkit → Sandbox](../packages/devkit/README.md#running-the-sandbox) |
+| Test lag, dropped phones and rejoins | [Devkit → Lag, disconnects and rejoins](../packages/devkit/README.md#lag-disconnects-and-rejoins) |
+| See or rewind my engine's state | [Devkit → State inspector](../packages/devkit/README.md#state-inspector-and-time-travel) |
 | Set player limits, the store page, screenshots | [game.config.json](./game-config.md) |
 | Check my game before uploading | [`npm run validate`](../packages/devkit/README.md#validating-before-upload) |
 | Release a new version | [Publishing a release](./publishing.md) |
@@ -42,9 +46,9 @@ Everything you need to build, test and publish a game on [boardgames.dallinking.
 |---|---|
 | [Messages](./messages.md) | Every message apps and engines send and receive, the `room` object, reserved namespaces |
 | [game.config.json](./game-config.md) | Every field, player limits, gallery, validation errors, migrating old configs |
-| [`@dallincreates/boardgame-server`](../packages/server/README.md) | `BaseGameEngine`: hooks, sending messages, `ActionMeta`, snapshots, utilities |
-| [`@dallincreates/boardgame-client`](../packages/client/README.md) | `BoardgameProvider`, `useBoardgame`, and the non-React bridge |
-| [`@dallincreates/boardgame-devkit`](../packages/devkit/README.md) | `sandbox`, `validate` and `stamp` commands, the config schema |
+| [`@dallincreates/boardgame-server`](../packages/server/README.md) | `BaseGameEngine`: hooks, sending messages, sound and vibration effects, `ActionMeta`, snapshots, utilities |
+| [`@dallincreates/boardgame-client`](../packages/client/README.md) | `BoardgameProvider`, `useBoardgame`, `audio`, `haptics`, platform settings, and the non-React bridge |
+| [`@dallincreates/boardgame-devkit`](../packages/devkit/README.md) | `sandbox` (lag, disconnects, state timeline, hot reload), `validate` and `stamp` commands, the config schema |
 | [`create-dallinking-boardgame`](../packages/create-dallinking-boardgame/README.md) | The project generator: options and what it creates |
 
 ## Design records

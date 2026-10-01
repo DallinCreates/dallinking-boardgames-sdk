@@ -106,6 +106,32 @@ Use a `game:` prefix on every message type. The frontends only see `game:*` mess
 
 `broadcastRoomUpdate` sends the same payload to everyone. If your state has secrets (hands, roles, hidden words), send each player their own view with `sendMessageToPlayer` instead.
 
+## Sound and vibration on one screen
+
+The engine decides who hears and feels what. These send a `game:fx` message that `@dallincreates/boardgame-client` plays on its own, at each device's volume and vibration settings, so your apps need no code for them:
+
+```js
+this.playSound(meta.playerId, 'buzz');            // a wrong answer, on that phone only
+this.playSound('board', 'fanfare');               // the TV only
+this.notifyTurn(nextPlayerId);                    // the 'turn' vibration on their phone
+this.notifyTurn(nextPlayerId, { sound: 'ding' }); // plus a sound on that phone
+this.notifyTimeRunningOut();                      // every phone: the 'warning' vibration
+this.vibrate([annId, boId], 'success');
+this.sendEffect(meta.playerId, { sound: 'buzz', volume: 0.6, haptic: 'error' });
+```
+
+| Method | Does |
+|---|---|
+| `sendEffect(to, { sound?, volume?, haptic? })` | The general form. The others call it. |
+| `playSound(to, sound, { volume? })` | A sound. `sound` is a name from `<BoardgameProvider sounds>`, or a path relative to the app (`'./sounds/buzz.mp3'`). |
+| `vibrate(to, pattern = 'tap')` | `'tap'`, `'success'`, `'error'`, `'turn'`, `'warning'`, a duration in ms, or `[on, off, on, ...]`. |
+| `notifyTurn(playerId, { sound? })` | "It's your turn." `playerId` can be an array. |
+| `notifyTimeRunningOut(to = 'players', { sound? })` | "Hurry." |
+
+`to` is a player ID, an array of them, `'board'`, `'players'` (every phone) or `'all'` (every phone and the board). Vibration only ever happens on phones, and only where the player allows it; iPhones can't vibrate from the web at all, so never rely on it alone.
+
+Effects are fire-and-forget: they aren't part of your state, so a phone that reconnects doesn't replay them.
+
 ## Ending a game
 
 ```ts
@@ -173,6 +199,7 @@ Your board and player apps should handle `game:sync_state` by replacing their lo
 - `SDK_VERSION` is this package's version. Every engine also inherits it as the static `sdkVersion` (`MyGame.sdkVersion`), so the bundled engine records which SDK it was built with.
 - `shuffle(array, random = Math.random)` returns a shuffled copy. Not cryptographically secure.
 - `ensurePlayer(players, playerId, name = 'Player')` returns a copy of the players map with `{ name, connected: true }` added for `playerId` if it was missing. It doesn't mutate the map you pass in.
+- `GAME_FX_MESSAGE` (`'game:fx'`), `buildEffectMessage(effect)` and the `GameEffect`, `EffectTarget` and `HapticPattern` types, for sending effects yourself.
 - `GAME_STATUS` has `LOBBY`, `ASSIGNING_ROLES`, `PLAYING` and `GAME_OVER`.
 - `MESSAGE_TYPE` has `ROOM_UPDATE`, `ROOM_GAME_STARTED`, `ROOM_CLOSED`, `GAME_UPDATE` and `GAME_ERROR`.
 

@@ -240,6 +240,13 @@ The sandbox follows the platform's lifecycle:
 - it adds the `game:` prefix to bare action types and refuses reserved ones;
 - it calls `destroy()` on reset.
 
+It also has the tools a real room can't give you:
+- **Network** lag per phone, and **Disconnect** / **Reconnect** to drop a phone mid-game: `onDisconnect`, then `onReconnect` with a snapshot and the actions it queued.
+- **🔍 State**: a timeline of `this.state` after every action, join and timer, with what changed, what each screen would receive (`getBoardState` / `getPlayerState`), and **⏪ Rewind** to any point.
+- **Hot reload** with `npm run sandbox:dev`: save the engine and it reloads without losing the game.
+
+See [Running the sandbox](../packages/devkit/README.md#running-the-sandbox).
+
 What it can't reproduce is the Cloud runtime. It runs your engine directly in Node, so it won't catch blocked `fetch` hosts, slow hooks or non-JSON state. Scaffolded projects bundle the engine for the browser, so `npm run build` *does* fail on `require` and Node APIs like `fs`. Before releasing, check the rest of the [runtime rules](#runtime-rules) yourself. The best test is to host a testing build both ways.
 
 ## Known gaps

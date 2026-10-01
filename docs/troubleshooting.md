@@ -23,10 +23,26 @@ Dependencies aren't installed. Run `npm install` in the project folder.
 Something else is using port 3000 or 4173. Stop the other process (often an old sandbox) and run it again.
 
 **My code changes don't show up.**
-`npm run sandbox` plays your last *build*. Use `npm run sandbox:dev` while iterating, or rebuild.
+`npm run sandbox` plays your last *build*: run `npm run build` again (the open sandbox picks it up), or use `npm run sandbox:dev` while iterating. In `-dev`, engine edits reload automatically; if a toast says **Engine reload failed**, fix the error it shows and save again. The previous engine keeps running until then.
+
+**After a hot reload or ⏪ Rewind, something is off.**
+Only `this.state` carries over. Values you keep on `this` outside `state` and running timers start fresh. Keep game data in `state`, and store deadlines there instead of relying on a timer.
 
 **Warning: "N players is outside players min–max".**
 You asked for a count your `game.config.json` doesn't allow. The sandbox runs anyway so you can test edge cases, but a real room won't start.
+
+## Sound and vibration
+
+**My game makes no sound.**
+- Play it through the SDK's `audio` (`audio.playSfx`, `audio.playMusic`), and check the path is relative (`./sounds/buzz.mp3`).
+- Check the device isn't muted: the toolbar's mute button, or **Menu → Sound & Vibration**. In the sandbox, the **Sound** menu only plays the board and the player tab you're looking at.
+- Phones need a tap before any page can play sound. The SDK starts audio on the first tap.
+
+**My sound ignores the volume settings.**
+It's playing through your own `<audio>` element or library. Use `audio` instead.
+
+**Phones don't vibrate.**
+iPhones can't vibrate from the web, desktop browsers can't either, and players can turn vibration off. Use `haptics` or the engine's `notifyTurn` (never `navigator.vibrate()`, which is blocked in game iframes), and always show the same thing on screen.
 
 ## Building and uploading
 

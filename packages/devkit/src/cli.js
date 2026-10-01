@@ -10,14 +10,16 @@ function printHelp() {
 boardgame-devkit ${version}
 
 Usage:
-  boardgame-devkit sandbox [-N] [-dev]   board + N players on one page
+  boardgame-devkit sandbox [-N] [-dev] [--no-hot]
+                                         board + N players on one page, with network
+                                         simulation, a state inspector and hot reload
   boardgame-devkit validate [--dist]     pre-upload check: config, players, cover, engine hooks
   boardgame-devkit stamp                 validate dist/game.config.json and write sdkVersion
   boardgame-devkit [--help] [--version]
 
 Examples:
   npm run sandbox -- -5        sandbox with 5 players
-  npm run sandbox -- -dev      skip the build
+  npm run sandbox -- -dev      skip the build; engine edits hot-reload
   npx boardgame-devkit validate
 
 Docs: https://github.com/DallinCreates/dallinking-boardgames-sdk/tree/main/docs

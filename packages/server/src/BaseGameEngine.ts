@@ -1,5 +1,6 @@
 import { SDK_VERSION } from './version';
 import { GAME_OVER_DEFAULT_DELAY_MS, GameOverResults, validateGameOverResults } from './gameOver';
+import { buildEffectMessage, EffectTarget, GameEffect, HapticPattern } from './effects';
 
 /**
  * System-injected metadata attached to every incoming game action.
@@ -182,6 +183,57 @@ export abstract class BaseGameEngine {
     } else {
       this.sendMessageToPlayer(playerId, { type: 'game:sync_state', payload: { state: this.getPlayerState(playerId) } });
     }
+  }
+
+  /**
+   * Plays a sound and/or vibration on the screens you pick, at each device's
+   * own volume and vibration settings. The apps need no code for it: the
+   * client SDK plays every game:fx message it receives.
+   *
+   *   this.sendEffect(playerId, { sound: 'buzz', haptic: 'error' });
+   *   this.sendEffect('players', { haptic: 'warning' });
+   *
+   * Vibration only happens on phones; the board just plays the sound.
+   */
+  public sendEffect(to: EffectTarget, effect: GameEffect): void {
+    if (to === 'all' || to === 'players') {
+      this.broadcastRoomUpdate(buildEffectMessage(effect, to === 'players' ? 'players' : undefined));
+      return;
+    }
+    const message = buildEffectMessage(effect);
+    if (to === 'board' || to === this.boardId) {
+      this.sendMessageToBoard(message);
+      return;
+    }
+    const playerIds = Array.isArray(to) ? to : [to];
+    playerIds.forEach((playerId) => {
+      if (typeof playerId === 'string' && playerId) this.sendMessageToPlayer(playerId, message);
+    });
+  }
+
+  /**
+   * Plays a sound on some screens only, such as one phone:
+   *
+   *   this.playSound(meta.playerId, 'wrong');
+   *   this.playSound('board', 'fanfare');
+   */
+  public playSound(to: EffectTarget, sound: string, options: { volume?: number } = {}): void {
+    this.sendEffect(to, { sound, volume: options.volume });
+  }
+
+  /** Vibrates players' phones: 'tap', 'success', 'error', 'turn', 'warning', ms, or a pattern. */
+  public vibrate(to: EffectTarget, pattern: HapticPattern = 'tap'): void {
+    this.sendEffect(to, { haptic: pattern });
+  }
+
+  /** Tells a player it's their turn: the 'turn' vibration, plus a sound if you give one. */
+  public notifyTurn(playerId: string | string[], options: { sound?: string } = {}): void {
+    this.sendEffect(playerId, { haptic: 'turn', sound: options.sound });
+  }
+
+  /** Warns players their time is almost up: the 'warning' vibration, plus a sound if you give one. */
+  public notifyTimeRunningOut(to: EffectTarget = 'players', options: { sound?: string } = {}): void {
+    this.sendEffect(to, { haptic: 'warning', sound: options.sound });
   }
 
   /**

@@ -80,6 +80,19 @@ What your apps can still do:
 - Keep private information here, never on the board.
 - Expect to be backgrounded: phones lock and switch apps. When the phone returns, the platform resends state.
 
+## Sound and vibration
+
+Volume, mute and vibration belong to the device, not your game. Players and the host set them once in the platform's game menu (or the toolbar's mute button), and every game follows them. So:
+
+- **Play everything through the SDK's `audio`**: `audio.playSfx('buzz')` for effects, `audio.playMusic(url)` for background music. It applies the device's music and sound-effects volumes and mute. An `<audio>` element of your own ignores them. Don't build your own volume or mute controls.
+- **Decide who hears what.** `audio.playSfx` plays on the screen that calls it. For a sound on one player's phone only, have the engine call `this.playSound(playerId, 'buzz')`; for the TV only, `this.playSound('board', 'fanfare')`. Big, shared moments belong on the board; private feedback (wrong answer, your card was played) belongs on the phone.
+- **Vibrate for "your turn" and "time's running out".** From the engine: `this.notifyTurn(playerId)` and `this.notifyTimeRunningOut()`. From a phone's app: `haptics.yourTurn()` and `haptics.timeRunningOut()`. Pair it with something visible: iPhones can't vibrate from the web, and players can turn it off.
+- **Music on the board, effects on the phones,** usually. Several phones playing the same music a few milliseconds apart sounds bad.
+
+See the [client README](../packages/client/README.md#sound) for the API.
+
+The platform also keeps every screen awake during a party, so phones don't lock between turns. Nothing to do on your side.
+
 ## What the iframe allows
 
 Your apps run in a sandboxed iframe (`allow-scripts allow-forms`) with no same-origin access:
@@ -90,9 +103,10 @@ Your apps run in a sandboxed iframe (`allow-scripts allow-forms`) with no same-o
 | Forms and inputs | Popups and `window.open` |
 | Images, audio, video and fonts from your release | Navigating the top page |
 | Gamepads, audio autoplay (delegated to your iframe) | Reading the platform page or other iframes |
+| Vibration and screen wake lock, through the platform (see above) | Calling `navigator.vibrate()` or `navigator.wakeLock` yourself (blocked in iframes) |
 
 - **Remember things in the engine, not the browser.** If a phone needs to recall something, it should be in the engine's state.
-- **Audio:** browsers may still require a tap before sound plays on phones. Start audio after the first user action.
+- **Audio:** browsers may still require a tap before sound plays on phones. The SDK's `audio` unlocks on the first tap and starts any music that was waiting.
 - **Wrap storage access in `try`/`catch`** if a library you use touches `localStorage`.
 
 ## Assets and paths
@@ -117,5 +131,7 @@ The sandbox page shows the board and every player side by side. Use its toolbar 
 - The board reads well at full screen.
 - Each phone fits in portrait without scrolling during play.
 - Every phase of your game (lobby, playing, game over) looks right on both.
+
+The sandbox also plays the platform's part for sound and vibration: its **Sound** menu picks which screens play audio (the board and the player you're looking at, by default), **🔊 Levels** sets the volumes sent to your game, and a phone that vibrates shakes on screen. Use **Network** to add lag and **Disconnect** to drop a phone, and **🔍 State** to inspect and rewind your engine's state. See [Running the sandbox](../packages/devkit/README.md#running-the-sandbox).
 
 Then host a testing build on the real site and join from actual phones. Nothing replaces a real room.

@@ -13,7 +13,7 @@ A party game for [boardgames.dallinking.com](https://boardgames.dallinking.com):
 |---|---|
 | \`npm run sandbox\` | Builds, then opens the board and several players on one page at http://localhost:3000. **Start here.** |
 | \`npm run sandbox -- -6\` | The sandbox with 6 players |
-| \`npm run sandbox:dev\` | The sandbox without building first (faster while iterating on the UI) |
+| \`npm run sandbox:dev\` | The sandbox without building first; engine edits hot-reload without losing the game |
 | \`npm run validate\` | Checks everything before upload: config, player counts, cover image and engine hooks |
 | \`npm run build\` | Builds everything into \`dist/\` and zips it as \`<id>-<version>.zip\` for upload |
 
@@ -87,6 +87,7 @@ This is a game for boardgames.dallinking.com, built on the @dallincreates boardg
 - \`onGameStart\` is called by the platform when the host presses Start. Don't add an in-game Start action.
 - End every game with \`this.gameOver({ players })\` or \`this.gameOver({ teams })\`. The platform owns the results screen, Play again (which calls \`onPlayAgain\`) and the party scoreboard, so don't build those in the game.
 - A player who leaves and rejoins keeps the same playerId. Keep their data in \`onPlayerLeave\` instead of deleting it.
+- Sound and vibration go through the SDK, never the browser directly: \`audio.playSfx\` / \`audio.playMusic\` in the apps (they follow each device's volume and mute settings), and \`this.playSound(playerId, ...)\`, \`this.notifyTurn(playerId)\` and \`this.notifyTimeRunningOut()\` in the engine for one phone. Don't add volume or mute controls, and don't call \`navigator.vibrate\` (blocked in the iframe).
 
 ## Conventions in this project
 
@@ -98,7 +99,7 @@ This is a game for boardgames.dallinking.com, built on the @dallincreates boardg
 
 ## Commands
 
-- \`npm run sandbox\`: run the game locally with several players.
+- \`npm run sandbox\`: run the game locally with several players. Its toolbar simulates lag and dropped phones, and **🔍 State** shows and rewinds \`this.state\`.
 - \`npm run validate\`: check the config, cover image and engine hooks before upload.
 - \`npm run build\`: build, validate, stamp and zip.
 

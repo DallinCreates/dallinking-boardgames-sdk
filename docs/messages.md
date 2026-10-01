@@ -20,7 +20,7 @@ send({ type: 'game:guess', payload: { word: 'apple' } });
 
 | Field | Rules |
 |---|---|
-| `type` | Must start with `game:`. A bare name like `'guess'` is turned into `'game:guess'`. Types starting with `room:`, `system:`, `connection:` or `webrtc:` are refused and never reach your engine. |
+| `type` | Must start with `game:`. A bare name like `'guess'` is turned into `'game:guess'`. Types starting with `room:`, `system:`, `connection:`, `webrtc:` or `platform:` are refused and never reach your engine. |
 | `payload` | Any JSON. Your engine receives it unchanged. **Validate it**: anyone can send anything. |
 | `meta` | Optional. The platform overwrites `playerId`, `isBoard`, `isVip` and `timestamp`; other keys pass through. |
 
@@ -63,6 +63,16 @@ Use the same message for your own updates and handle it in your apps by **replac
 
 You can send other `game:*` messages too, for one-off events like `game:round_timer` or `game:your_hand`.
 
+### `game:fx` (sound and vibration)
+
+`this.playSound`, `this.vibrate`, `this.notifyTurn`, `this.notifyTimeRunningOut` and `this.sendEffect` send this ([server README](../packages/server/README.md#sound-and-vibration-on-one-screen)):
+
+```json
+{ "type": "game:fx", "payload": { "sound": "buzz", "volume": 0.6, "haptic": "turn", "only": "players" } }
+```
+
+Every field is optional. The client SDK plays it as soon as it arrives, at the device's own settings: the sound on that screen, the vibration on phones only, and nothing on the board when `only` is `"players"`. It still reaches `onMessage`, so you can add a visual flourish. Don't use `game:fx` for anything else.
+
 ## Platform → apps
 
 Besides your engine's `game:*` messages, `onMessage` receives these from the platform:
@@ -74,7 +84,7 @@ Besides your engine's `game:*` messages, `onMessage` receives these from the pla
 | `system:error` | Something this screen did was refused, or your engine sent one | `{ type, message }` |
 | `game:ack` | Cloud hosting confirms it processed an action | `{ type, messageId }` (safe to ignore) |
 
-Every other `room:*` message is filtered out before it reaches your app.
+Every other `room:*` message is filtered out before it reaches your app, and so is every `platform:*` message (below).
 
 ### `clientId`: who am I?
 
@@ -134,7 +144,18 @@ The night so far, ranked by wins, then points:
 }
 ```
 
-The devkit sandbox sends a smaller `room` (`code`, `boardId`, `gameId`, `gameName`, `gameStarted`, `phase`, `results`, `party`, and `players` with `id`, `name` and `isVip`), so don't depend on the other fields without a fallback.
+The devkit sandbox sends a smaller `room` (`code`, `boardId`, `gameId`, `gameName`, `gameStarted`, `phase`, `results`, `party`, and `players` with `id`, `name`, `isVip` and `connected`), so don't depend on the other fields without a fallback.
+
+## Platform ↔ SDK
+
+The platform and the client SDK talk to each other directly, inside the device, in the `platform:` namespace. These never reach your engine or your `onMessage`, and the SDK handles them for you. They're listed here for completeness.
+
+| Type | Direction | Shape | What happens |
+|---|---|---|---|
+| `platform:settings` | Platform → game | `{ payload: { muted, masterVolume, musicVolume, sfxVolume, haptics, canVibrate } }` | Sent when the game loads and whenever the player changes a setting. `audio` applies it; `usePlatformSettings()` returns it. |
+| `platform:haptic` | Game → platform | `{ payload: { pattern: [on, off, ...] } }` | The platform vibrates the phone, if the player allows it. Patterns are capped at 10 steps and 3 seconds. |
+
+Older platforms don't send `platform:settings`. Until it arrives, the SDK plays at full volume and doesn't ask for vibration.
 
 ## Reserved namespaces
 
@@ -143,4 +164,5 @@ The devkit sandbox sends a smaller `room` (`code`, `boardId`, `gameId`, `gameNam
 | `game:` | Your game | Yes: all of your actions and messages |
 | `room:` | Platform room control | No. Receive `room:update` and `room:reconnected` only. |
 | `system:` | Platform errors and readiness | Receive `system:error`. Engines may send a targeted `system:error`. |
+| `platform:` | The device's settings and vibration ([above](#platform--sdk)) | No. The SDK uses it for you. |
 | `connection:`, `webrtc:` | Platform networking | No |

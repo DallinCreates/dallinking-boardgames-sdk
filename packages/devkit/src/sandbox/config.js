@@ -6,6 +6,7 @@ export function resolveSandboxConfig({ cwd = process.cwd(), argv = process.argv.
     let numPlayers = playerArg ? parseInt(playerArg.replace('-', ''), 10) : null;
 
     const isDev = argv.includes('-dev');
+    const hotReload = !argv.includes('--no-hot');
 
     // Scaffolded projects keep it in public/ so Vite copies it into dist/.
     const configPath = [path.join(cwd, 'public', 'game.config.json'), path.join(cwd, 'game.config.json')]
@@ -33,5 +34,5 @@ export function resolveSandboxConfig({ cwd = process.cwd(), argv = process.argv.
     const packageJson = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
     const buildCmd = packageJson.scripts['build:all'] ? 'build:all' : 'build';
 
-    return { gameName, numPlayers, buildCmd, isDev };
+    return { gameName, numPlayers, buildCmd, isDev, hotReload };
 }
