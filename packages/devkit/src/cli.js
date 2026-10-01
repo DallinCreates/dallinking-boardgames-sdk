@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { initDevkit, runSandbox } from './index.js';
+import { initDevkit, runSandbox, stampReleaseConfig } from './index.js';
+import { runValidate } from './validate.js';
 
 function printHelp() {
   const { version } = initDevkit();
@@ -9,15 +10,17 @@ function printHelp() {
 boardgame-devkit ${version}
 
 Usage:
-  boardgame-devkit sandbox [player-count-flag]
+  boardgame-devkit sandbox [-N] [-dev]   board + N players on one page
+  boardgame-devkit validate [--dist]     pre-upload check: config, players, cover, engine hooks
+  boardgame-devkit stamp                 validate dist/game.config.json and write sdkVersion
   boardgame-devkit [--help] [--version]
 
 Examples:
-  boardgame-devkit sandbox -5
-  npm run sandbox -- -5
+  npm run sandbox -- -5        sandbox with 5 players
+  npm run sandbox -- -dev      skip the build
+  npx boardgame-devkit validate
 
-The devkit package currently exposes shared SDK helpers and this lightweight
-CLI entrypoint for package validation.
+Docs: https://github.com/DallinCreates/dallinking-boardgames-sdk/tree/main/docs
 `);
 }
 
@@ -38,6 +41,18 @@ async function main() {
 
   if (command === 'sandbox') {
     await runSandbox({ cwd: process.cwd(), argv: commandArgs });
+    return;
+  }
+
+  if (command === 'validate') {
+    const ok = await runValidate({ cwd: process.cwd(), argv: commandArgs });
+    // Exit explicitly: timers the engine started during the check would
+    // otherwise keep the process alive.
+    process.exit(ok ? 0 : 1);
+  }
+
+  if (command === 'stamp') {
+    stampReleaseConfig({ cwd: process.cwd() });
     return;
   }
 

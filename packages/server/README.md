@@ -1,110 +1,181 @@
-# @dallinking/boardgame-server
+# @dallincreates/boardgame-server
 
-The authoritative backend engine for the Dallin King Boardgames SDK.
+The authoritative game engine for [boardgames.dallinking.com](https://boardgames.dallinking.com).
 
-This package provides the base classes and TypeScript interfaces required to write state-driven, turn-based game logic that seamlessly synchronizes between a central Host Board and multiple Mobile Player controllers.
+You write one class that extends `BaseGameEngine`. The platform runs it either on the host's device (in a web worker) or on our servers. It receives every action the board and phones send, owns the game state, and pushes updates back out.
+
+This README is the API reference. For when each hook fires, what the runtime allows, and how games survive reconnects, read [How your engine runs](https://github.com/DallinCreates/dallinking-boardgames-sdk/blob/main/docs/engine.md). To start a project with all of this set up, run `npm create @dallincreates/dallinking-boardgame my-game`.
 
 ## Installation
 
 ```bash
-npm install @dallinking/boardgame-server
+npm install @dallincreates/boardgame-server
 ```
 
-## Usage: Creating a Game Engine
+## Writing an engine
 
-To build a game, create a class that extends BaseGameEngine. This class acts as your authoritative server. It catches actions sent by the frontends, updates the internal state, and automatically broadcasts the changes.
+Your engine is the default export of `src/engine/engine.js` (bundled to `dist/engine.cjs` for release). Every hook marked **required** below must be implemented.
 
-```node
-import { BaseGameEngine, ActionMeta, GAME_STATUS } from '@dallinking/boardgame-server';
+```js
+import { BaseGameEngine, GAME_STATUS, ensurePlayer } from '@dallincreates/boardgame-server';
 
-export class MyCustomGame extends BaseGameEngine {
-  constructor(deps) {
-    super(deps);
-    // Initialize your custom state
-    this.state = {
-      status: GAME_STATUS.LOBBY,
-      score: 0
-    };
+export default class MyGame extends BaseGameEngine {
+  // Required. Runs when the party picks this game, and again on a fresh
+  // engine when a game ends and the party returns to the lobby.
+  onInit() {
+    this.state = { status: GAME_STATUS.LOBBY, players: {}, scores: {} };
   }
 
-  // Hook: Triggered when the Host clicks "Start Game"
+  // Required. Runs once for every player already in the party right after
+  // onInit (isLateJoin = false), then for each new join (isLateJoin = true
+  // if the game has already started).
+  onPlayerJoin(playerId, name, isLateJoin) {
+    this.state.players = ensurePlayer(this.state.players, playerId, name);
+    this.state.scores[playerId] ??= 0;
+    this.sync();
+  }
+
+  // Required. A player left, was kicked, or didn't reconnect in time.
+  // Cloud hosting calls it only after Start; Local hosting may call it in
+  // the lobby too, so handle both.
+  onPlayerLeave(playerId) {
+    this.sync();
+  }
+
+  // Required. A player's connection came back; resend what they need.
+  onReconnect(playerId, meta) {
+    this.sendStateSnapshot(playerId, meta.isBoard);
+  }
+
+  // Required. A player's connection dropped (they may come back).
+  onDisconnect(playerId, meta) {}
+
+  // Optional. Runs once per engine when the board or VIP presses Start.
   onGameStart() {
     super.onGameStart();
     this.state.status = GAME_STATUS.PLAYING;
-    this.syncState();
+    this.sync();
   }
 
-  // Core Router: Handle actions sent by the React frontends
-  processAction(actionType: string, payload: any, meta: ActionMeta) {
+  // Required. Every message whose type starts with "game:" lands here.
+  processAction(actionType, payload, meta) {
     switch (actionType) {
-      case 'PLAYER_SCORED':
-        // The 'meta' object is securely injected by the SDK
-        if (meta.isBoard) return; // Ignore if the board tries to score
-        
-        this.state.score += payload.points;
-        this.syncState();
+      case 'game:score':
+        if (meta.isBoard || this.isGameOver) return; // only phones score, and not after the end
+        this.state.scores[meta.playerId] += payload.points;
+        this.sync();
+        if (this.state.scores[meta.playerId] >= 10) {
+          // The platform shows the results, counts the win, and offers Play again.
+          this.gameOver({ players: this.state.scores });
+        }
         break;
-        
       default:
         console.warn(`Unhandled action: ${actionType}`);
     }
   }
 
-  // Utility to push state to all connected screens
-  private syncState() {
-    this.broadcastRoomUpdate({
-      type: 'game:update',
-      state: this.state
-    });
+  // Optional. Play again from the results screen, on this same instance.
+  // Leave it out and the platform starts a fresh engine instead.
+  onPlayAgain() {
+    for (const id in this.state.scores) this.state.scores[id] = 0;
+    this.sync();
+  }
+
+  // Optional. Clear timers/intervals when the room closes or the game ends.
+  destroy() {}
+
+  // Broadcasting game:sync_state also saves a checkpoint, so the game
+  // survives the host's tab reloading.
+  sync() {
+    this.broadcastRoomUpdate({ type: 'game:sync_state', payload: { state: this.state } });
   }
 }
 ```
 
-## The ActionMeta Object
+For where engines run, the runtime's limits, reconnects and checkpoints, see [How your engine runs](https://github.com/DallinCreates/dallinking-boardgames-sdk/blob/main/docs/engine.md).
 
-Every action processed by your engine automatically receives a secure meta object injected by the room system. This prevents client-side spoofing and makes authorization checks effortless.
+### Sending messages
 
-```node
+| Method | Goes to |
+|---|---|
+| `this.broadcastRoomUpdate(message)` | The board and every player |
+| `this.sendMessageToPlayer(playerId, message)` | One player |
+| `this.sendMessageToBoard(message)` | The board only |
+
+Use a `game:` prefix on every message type. The frontends only see `game:*` messages plus the platform's `room:update` and `room:reconnected`; other `room:*` messages are filtered out before they reach your iframe.
+
+`broadcastRoomUpdate` sends the same payload to everyone. If your state has secrets (hands, roles, hidden words), send each player their own view with `sendMessageToPlayer` instead.
+
+## Ending a game
+
+```ts
+this.gameOver(results: GameOverResults): void
+this.isGameOver: boolean          // true from gameOver() until Play again
+onPlayAgain?(): void              // optional hook
+```
+
+```ts
+interface GameOverResults {
+  players?: Record<string, number | 'WON' | 'LOST' | 'TIE' | { outcome?: 'WON' | 'LOST' | 'TIE'; score?: number }>;
+  teams?: { name: string; players: string[]; outcome?: 'WON' | 'LOST' | 'TIE'; score?: number; color?: string }[];
+  summary?: string;          // up to 140 characters
+  lowerScoreWins?: boolean;  // default false: the highest score wins
+  delayMs?: number;          // 0-10000, default 1500
+}
+```
+
+Call `gameOver` once, after `onGameStart`. Invalid results are ignored with a console warning. Team wins count as a win for every player on the team. `validateGameOverResults(results)` is exported if you want to check results yourself; it returns the problem as a string, or `null`.
+
+How ranking, the results screen, Play again and the Tonight scoreboard work: [Ending a game](https://github.com/DallinCreates/dallinking-boardgames-sdk/blob/main/docs/engine.md#ending-a-game).
+
+## ActionMeta
+
+Every action arrives with metadata filled in by the room server, so clients can't spoof it:
+
+```ts
 interface ActionMeta {
-  playerId: string;    // The unique ID of the sender
-  isBoard: boolean;    // True if the action came from the Host Screen
-  isVip: boolean;      // True if the sender is the Room VIP (first to join)
-  timestamp: number;   // Epoch timestamp of the action
+  playerId: string;   // who sent it
+  isBoard: boolean;   // true if it came from the shared screen
+  isVip: boolean;     // true if the sender is the party's VIP
+  timestamp: number;  // epoch ms
 }
 ```
 
-## State Snapshots (Reconnect & Refresh)
+The VIP runs the party from their phone (picks games, starts, kicks). The first player to join becomes VIP, except that a phone signed into the host's account takes VIP when it joins. If the VIP leaves, it passes to the host's phone if present, otherwise to the next player.
 
-The platform periodically needs to re-deliver state to a single client: when a player reconnects after a dropped connection, rejoins mid-game, or presses the in-game **Refresh** button. Two overridable getters control what each client receives:
+## State snapshots (reconnect and refresh)
 
-```node
-export class MyCustomGame extends BaseGameEngine {
-  // What the board/host screen receives on reconnect or refresh.
-  getBoardState() {
-    return this.state;
-  }
+The platform re-delivers state to a single client when a player reconnects, rejoins mid-game, or presses **Refresh room state** in the game menu. Two getters decide what they get:
 
-  // What a single player receives on reconnect or refresh.
-  // Override this to strip out secrets other players shouldn't see.
-  getPlayerState(playerId) {
-    const { secretMap, ...publicState } = this.state;
-    return { ...publicState, myRole: this.state.roles?.[playerId] };
-  }
+```js
+getBoardState() {
+  return this.state;
+}
+
+// Strip out anything this player shouldn't see.
+getPlayerState(playerId) {
+  const { roles, ...publicState } = this.state;
+  return { ...publicState, myRole: roles?.[playerId] };
 }
 ```
 
-The defaults return the full `this.state`. The room system calls `sendStateSnapshot(playerId, isBoard)` automatically on reconnect and refresh, which wraps the getter result in a `game:sync_state` message (see `MESSAGE_TYPE.GAME_STATE_SYNC`):
+Both default to the full `this.state`. `sendStateSnapshot(playerId, isBoard)` wraps the result as:
 
 ```json
-{ "type": "game:sync_state", "payload": { "state": { /* getter result */ } } }
+{ "type": "game:sync_state", "payload": { "state": { } } }
 ```
 
-Your frontends should handle `game:sync_state` and replace their local state with the payload — this is what restores a player's screen after a reconnect.
+Your board and player apps should handle `game:sync_state` by replacing their local state with the payload.
 
-## Built-in Utilities
+## Utilities
 
-This package also exports common, highly optimized utilities for tabletop mechanics:
+- `validateGameOverResults(results)` returns the first problem with `gameOver` results, or `null`. `GameOverResults`, `TeamResult` and `GameOutcome` are exported as types.
+- `SDK_VERSION` is this package's version. Every engine also inherits it as the static `sdkVersion` (`MyGame.sdkVersion`), so the bundled engine records which SDK it was built with.
+- `shuffle(array, random = Math.random)` returns a shuffled copy. Not cryptographically secure.
+- `ensurePlayer(players, playerId, name = 'Player')` returns a copy of the players map with `{ name, connected: true }` added for `playerId` if it was missing. It doesn't mutate the map you pass in.
+- `GAME_STATUS` has `LOBBY`, `ASSIGNING_ROLES`, `PLAYING` and `GAME_OVER`.
+- `MESSAGE_TYPE` has `ROOM_UPDATE`, `ROOM_GAME_STARTED`, `ROOM_CLOSED`, `GAME_UPDATE` and `GAME_ERROR`.
 
-- shuffle(array): Array shuffler for general-purpose gameplay use; not cryptographically secure by default.
-- ensurePlayer(state, id): Safely initializes a player in your state object.
-- GAME_STATUS / MESSAGE_TYPE: Standardized string constants for routing.
+## License
+
+MIT

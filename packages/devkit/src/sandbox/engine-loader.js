@@ -3,11 +3,12 @@ import path from 'path';
 import { createRequire } from 'module';
 import { pathToFileURL } from 'url';
 
-export async function loadSandboxEngine(cwd) {
-    const engineCandidates = [
-        path.join(cwd, 'dist/engine.cjs'),
-        path.join(cwd, 'src/engine/engine.js'),
-    ];
+// Dev mode serves the UI live from src/, so it loads the engine source too;
+// otherwise engine edits would be ignored until the next build.
+export async function loadSandboxEngine(cwd, { preferSource = false } = {}) {
+    const built = path.join(cwd, 'dist/engine.cjs');
+    const source = path.join(cwd, 'src/engine/engine.js');
+    const engineCandidates = preferSource ? [source, built] : [built, source];
 
     const enginePath = engineCandidates.find((candidatePath) => fs.existsSync(candidatePath));
 

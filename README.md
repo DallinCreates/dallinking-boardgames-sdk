@@ -10,18 +10,43 @@ This repository is managed as an npm workspace and is divided into the following
 
 | Package | Description |
 |---|---|
-| [`@dallinking/boardgame-server`](./packages/server) | The core abstract classes and state managers for building authoritative backend game logic. |
-| [`@dallinking/boardgame-client`](./packages/client) | React hooks and UI components to seamlessly connect Host Boards and Mobile Player controllers to the game engine. |
-| [`@dallinking/boardgame-devkit`](./packages/devkit) | The local testing server that simulates the live production environment. |
-| [`create-dallinking-boardgame`](./packages/create-dallinking-boardgame) | The CLI tool to instantly scaffold a new game project. |
+| [`@dallincreates/boardgame-server`](./packages/server) | `BaseGameEngine`: the authoritative game logic that receives actions and pushes state. |
+| [`@dallincreates/boardgame-client`](./packages/client) | `BoardgameProvider` / `useBoardgame`: connects your board and player apps to the engine. |
+| [`@dallincreates/boardgame-devkit`](./packages/devkit) | Local tools: the sandbox (board + N players on one page), config validation, and release stamping. |
+| [`@dallincreates/create-dallinking-boardgame`](./packages/create-dallinking-boardgame) | Scaffolds a new game project. |
 
 ## Getting Started
 
-To create a new game using this SDK, run the following command in your terminal:
-
 ```bash
-npm create dallinking-boardgame my-new-game
+npm create @dallincreates/dallinking-boardgame my-new-game
+cd my-new-game
+npm run sandbox
 ```
+
+That creates a playable starter game, installs everything, and opens the board plus several players on one page at http://localhost:3000. Requires Node.js 18+.
+
+How a game fits together:
+
+- **Board app** (`board.html`): the shared screen (TV or laptop).
+- **Player app** (`player.html`): each phone.
+- **Engine** (`src/engine/engine.js`): owns the state. The platform runs it on the host's device or on our servers, and the two apps talk to it through `@dallincreates/boardgame-client`.
+- **`game.config.json`**: the release's ID, version, store page and player limits.
+
+Rooms are parties: one room plays several games in a row. The party's VIP (the host's phone when they join signed in, otherwise the first player) picks the game and starts it. When a game ends, everyone returns to the lobby with a fresh engine.
+
+## Documentation
+
+**[Start with the docs →](./docs/README.md)** They're organized by what you're trying to do.
+
+| | |
+|---|---|
+| [Getting started](./docs/getting-started.md) | From an empty folder to an uploaded game in about 15 minutes |
+| [How your engine runs](./docs/engine.md) | Lifecycle, runtime rules, reconnects and checkpoints |
+| [Building the board and player apps](./docs/apps.md) | Showing state, identity, designing for TV and phone, iframe limits |
+| [Messages](./docs/messages.md) | Every message your apps and engine send and receive |
+| [game.config.json](./docs/game-config.md) | Every field, player limits, gallery, validation |
+| [Publishing a release](./docs/publishing.md) | Versioning, building, uploading |
+| [Troubleshooting](./docs/troubleshooting.md) | Symptoms and fixes |
 
 ## Contributing
 

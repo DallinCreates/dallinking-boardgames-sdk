@@ -86,9 +86,30 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
                 box-shadow: 0 20px 40px rgba(0,0,0,0.5);
                 border: 8px solid #334155;
             }
+
+            /* Results (game over) and warnings */
+            .tab-tools { display: flex; gap: 4px; padding: 0 6px; align-items: center; background: #0f172a; }
+            .mini-btn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 4px; font-size: 11px; padding: 2px 8px; cursor: pointer; }
+            .mini-btn:hover { border-color: #38bdf8; }
+            #warning { display: none; background: #7f1d1d; color: #fecaca; font-size: 12px; padding: 6px 12px; cursor: pointer; }
+            #results { display: none; position: fixed; inset: 40px 0 0 0; background: rgba(2, 6, 23, 0.82); z-index: 200; align-items: center; justify-content: center; }
+            #results .card { background: #111827; border: 1px solid #334155; border-radius: 14px; padding: 20px 24px; width: min(720px, 92vw); max-height: 85vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+            #results h2 { margin: 4px 0; font-size: 28px; text-align: center; }
+            #results .game { text-align: center; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #94a3b8; }
+            #results .summary { text-align: center; color: #cbd5e1; margin: 0 0 12px; }
+            #results .row { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; padding: 6px 10px; margin: 4px 0; border-radius: 8px; background: #1e293b; font-size: 14px; }
+            #results .row.dim { opacity: 0.5; }
+            #results .sub { font-size: 12px; color: #94a3b8; }
+            #results .phones { margin-top: 12px; border-top: 1px solid #334155; padding-top: 10px; font-size: 13px; color: #cbd5e1; }
+            #results .actions { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+            #results .actions button { padding: 8px 16px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+            #results-pill { display: none; position: fixed; right: 16px; bottom: 16px; z-index: 150; background: #111827; color: #facc15; border: 1px solid #facc15; border-radius: 20px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
         </style>
     </head>
     <body data-layout="split" data-device="responsive">
+        <div id="warning" onclick="this.style.display='none'" title="Click to dismiss"></div>
+        <div id="results"><div class="card" id="results-card"></div></div>
+        <button id="results-pill" onclick="reopenResults()">🏆 Results</button>
         <div class="global-toolbar">
             <div style="display: flex; gap: 12px;">
                 <div class="toolbar-group">
@@ -127,8 +148,14 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
             </div>
 
             <div class="pane player-pane">
-                <div class="tabs" id="tabs">
-                    ${playerTabs}
+                <div style="display: flex;">
+                    <div class="tabs" id="tabs" style="flex: 1;">
+                        ${playerTabs}
+                    </div>
+                    <div class="tab-tools">
+                        <button class="mini-btn" onclick="leavePlayer()" title="This player leaves the room">Leave</button>
+                        <button class="mini-btn" onclick="rejoinPlayer()" title="This player joins again (same player ID)">Rejoin</button>
+                    </div>
                 </div>
                 <div class="iframe-container">
                     ${playerIframes}
@@ -145,7 +172,10 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
                 document.body.setAttribute('data-device', mode);
             }
 
+            let currentPlayer = 'player_1';
+
             function showPlayer(id) {
+                currentPlayer = id;
                 document.querySelectorAll('.player-wrapper').forEach(f => f.style.display = 'none');
                 document.getElementById('wrapper_' + id).style.display = 'flex';
                 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -170,7 +200,126 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
                 }
             }
 
+            // Leave/Rejoin: the player keeps their ID, as party members do.
+            function leavePlayer() {
+                const iframe = document.getElementById(currentPlayer);
+                if (!iframe || iframe.dataset.left) return;
+                ws.send(JSON.stringify({ senderId: currentPlayer, data: { type: 'room:leave' } }));
+                iframe.dataset.src = iframe.src;
+                iframe.dataset.left = '1';
+                iframe.src = 'about:blank';
+            }
+
+            function rejoinPlayer() {
+                const iframe = document.getElementById(currentPlayer);
+                if (!iframe || !iframe.dataset.left) return;
+                delete iframe.dataset.left;
+                iframe.src = iframe.dataset.src;
+            }
+
+            function showWarning(message) {
+                const el = document.getElementById('warning');
+                el.textContent = '⚠️ ' + message + '  (click to dismiss)';
+                el.style.display = 'block';
+            }
+
+            // --- Results screen (what the platform shows over the game) ---
+            let latestRoom = null;
+            let resultsTab = 'game';
+            let hiddenKey = null;
+            let resultsTimer = null;
+
+            const ordinal = (n) => { const t = n % 100; if (t >= 11 && t <= 13) return n + 'th'; return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'); };
+            const esc = (text) => String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const label = (entry) => entry.score !== null && entry.score !== undefined ? String(entry.score) : ({ WON: 'Won', LOST: 'Lost', TIE: 'Tie' }[entry.outcome] || '');
+            const resultsKey = (room) => room.results ? room.results.gameId + ':' + room.results.endedAt : null;
+
+            function personalHeadline(results, mine) {
+                if (!mine) return "didn't finish";
+                if (mine.won) return '🏆 You won!';
+                if (mine.outcome === 'LOST') return 'You lost';
+                if (mine.outcome === 'TIE') return "It's a tie";
+                return 'You placed ' + ordinal(mine.rank);
+            }
+
+            function renderResults() {
+                const room = latestRoom;
+                const card = document.getElementById('results-card');
+                const r = room.results;
+                let html = '<div class="game">' + esc(r.gameName) + '</div><h2>🏆 ' + esc(r.headline) + '</h2>';
+                html += r.summary ? '<p class="summary">' + esc(r.summary) + '</p>' : '<p class="summary"></p>';
+                html += '<div class="actions" style="margin: 0 0 10px;">'
+                    + '<button class="mini-btn" onclick="showGameTab()"' + (resultsTab === 'game' ? ' style="border-color:#38bdf8"' : '') + '>This game</button>'
+                    + '<button class="mini-btn" onclick="showTonightTab()"' + (resultsTab === 'tonight' ? ' style="border-color:#38bdf8"' : '') + '>Tonight</button></div>';
+
+                if (resultsTab === 'game') {
+                    if (r.teams.length) {
+                        r.teams.forEach((team) => {
+                            const members = r.standings.filter((s) => s.team === team.name)
+                                .map((s) => esc(s.name) + (s.score !== null ? ' ' + s.score : '')).join(' · ');
+                            html += '<div class="row"><span>' + ordinal(team.rank) + '</span><span><b style="color:' + esc(team.color || '#e2e8f0') + '">■</b> '
+                                + esc(team.name) + (team.won ? ' 🏆' : '') + '<div class="sub">' + members + '</div></span><b>' + esc(label(team)) + '</b></div>';
+                        });
+                    } else {
+                        r.standings.forEach((s) => {
+                            html += '<div class="row"><span>' + ordinal(s.rank) + '</span><span>' + esc(s.name) + (s.won ? ' 🏆' : '') + '</span><b>' + esc(label(s)) + '</b></div>';
+                        });
+                        r.didNotFinish.forEach((p) => { html += '<div class="row dim"><span>—</span><span>' + esc(p.name) + "</span><span>didn't finish</span></div>"; });
+                    }
+                    html += '<div class="phones"><b>On each phone:</b> ' + room.players.map((p) => esc(p.name) + ': ' + esc(personalHeadline(r, r.byPlayer[p.id]))).join(' · ') + '</div>';
+                } else {
+                    html += '<div class="sub" style="margin-bottom:6px">' + room.party.gamesPlayed + ' games tonight · ranked by wins, then points</div>';
+                    room.party.standings.forEach((row) => {
+                        html += '<div class="row' + (row.seated ? '' : ' dim') + '"><span>' + ordinal(row.rank) + '</span><span>' + esc(row.name) + (row.seated ? '' : ' (left)')
+                            + '</span><span>' + row.wins + ' W · ' + row.points + ' pts · ' + row.gamesPlayed + ' played</span></div>';
+                    });
+                }
+
+                html += '<div class="actions">'
+                    + '<button style="background:#22c55e;color:white" onclick="playAgain()">▶ Play again</button>'
+                    + '<button style="background:#334155;color:white" onclick="pickAnotherGame()">Pick another game</button>'
+                    + '<button style="background:transparent;color:#94a3b8" onclick="hideResults()">Hide ⌄</button></div>';
+                card.innerHTML = html;
+            }
+
+            function updateResults(room) {
+                latestRoom = room;
+                clearTimeout(resultsTimer);
+                const overlay = document.getElementById('results');
+                const pill = document.getElementById('results-pill');
+                if (room.phase !== 'results' || !room.results) {
+                    overlay.style.display = 'none';
+                    pill.style.display = 'none';
+                    return;
+                }
+                const key = resultsKey(room);
+                const delay = Math.max(0, room.results.showAt - room.results.endedAt);
+                resultsTimer = setTimeout(() => {
+                    if (hiddenKey === key) {
+                        pill.style.display = 'block';
+                        return;
+                    }
+                    renderResults();
+                    overlay.style.display = 'flex';
+                    pill.style.display = 'none';
+                }, delay);
+            }
+
+            function showGameTab() { resultsTab = 'game'; renderResults(); }
+            function showTonightTab() { resultsTab = 'tonight'; renderResults(); }
+            function playAgain() { sendRoom('room:play_again'); }
+            function pickAnotherGame() { sendRoom('room:end_game'); }
+            function hideResults() {
+                hiddenKey = resultsKey(latestRoom);
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('results-pill').style.display = 'block';
+            }
+            function reopenResults() { hiddenKey = null; updateResults(latestRoom); }
+            function sendRoom(type) { ws.send(JSON.stringify({ senderId: 'harness', data: { type } })); }
+
             function notifyReady(iframe) {
+                // A player who left shows about:blank; that load isn't a join.
+                if (iframe.dataset && iframe.dataset.left) return;
                 if (ws.readyState !== WebSocket.OPEN) {
                     ws.addEventListener('open', () => notifyReady(iframe));
                     return;
@@ -186,6 +335,16 @@ export function generateHarnessHtml(gameName, playersCount, previewPort) {
 
             ws.onmessage = (event) => {
                 const { targetId, data } = JSON.parse(event.data);
+
+                if (targetId === 'harness' && data.type === 'DEV_RESULTS') {
+                    updateResults(data.room);
+                    return;
+                }
+
+                if (targetId === 'harness' && data.type === 'DEV_WARNING') {
+                    showWarning(data.message);
+                    return;
+                }
 
                 if (targetId === 'harness' && data.type === 'DEV_FORCE_RELOAD') {
                     document.querySelectorAll('iframe').forEach(ifr => {

@@ -4,8 +4,12 @@
  */
 
 import { runSandbox } from './sandbox.js';
+import { stampReleaseConfig } from './stamp.js';
+import { checkRelease, validateProjectConfig, REQUIRED_HOOKS } from './validate.js';
+import { validateGameConfig } from './config-rules.js';
+import { SDK_VERSION } from './version.js';
 
-export { runSandbox };
+export { runSandbox, stampReleaseConfig, checkRelease, validateProjectConfig, validateGameConfig, REQUIRED_HOOKS };
 
 /**
  * Initialize devkit utilities
@@ -13,11 +17,15 @@ export { runSandbox };
  */
 export function initDevkit() {
   return {
-    version: '0.0.1',
+    version: SDK_VERSION,
   };
 }
 
 export default {
   initDevkit,
   runSandbox,
+  stampReleaseConfig,
+  checkRelease,
+  validateProjectConfig,
+  validateGameConfig,
 };

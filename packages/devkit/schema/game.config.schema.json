@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/DallinCreates/dallinking-boardgames-sdk/blob/main/packages/devkit/schema/game.config.schema.json",
+  "title": "game.config.json",
+  "description": "Release config for a boardgames.dallinking.com game. Reference: https://github.com/DallinCreates/dallinking-boardgames-sdk/blob/main/docs/game-config.md",
+  "type": "object",
+  "required": ["id", "version"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Editor autocomplete only. Removed from the release by the build."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Your game's ID. Letters, numbers, dashes and underscores. Must match the game you upload to on the Developer page."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+      "description": "Release version in semver, like \"1.0.0\". Published versions are locked, so bump it for every release."
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 60,
+      "description": "Display name, used when the catalog has none."
+    },
+    "sdkVersion": {
+      "type": "string",
+      "description": "Set by `boardgame-devkit stamp` during the build. Don't write it yourself."
+    },
+    "subtitle": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "One line that sells the game. Shown on catalog cards, under the title on your game page, and to search engines. Aim for under 80 characters."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "The About section of your game page. Plain text; line breaks (\\n) are kept."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Tags for your game page, the Explore tag filter and search. Use Title Case, like \"Word Game\"."
+    },
+    "gallery": {
+      "type": "array",
+      "maxItems": 12,
+      "description": "Screenshots shown on your game page, first to last.",
+      "items": {
+        "type": "object",
+        "required": ["src"],
+        "additionalProperties": false,
+        "properties": {
+          "src": {
+            "type": "string",
+            "pattern": "^(?![a-zA-Z]+:)(?!/)(?!.*(^|/)\\.\\.(/|$)).+\\.(png|jpe?g|webp|gif|PNG|JPE?G|WEBP|GIF)$",
+            "description": "Path to an image inside your release, like \"gallery/lobby.png\". Put the file in public/gallery/. Must be .png, .jpg, .webp or .gif."
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Shown under the image and used as its alt text."
+          }
+        }
+      }
+    },
+    "players": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Player limits, enforced in rooms. Leave a key out for no limit that way.",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Start stays disabled until this many players have joined."
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "New players can't join once the room has this many."
+        },
+        "recommended": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Shown as \"best at N\" on your game page. Must be between min and max."
+        }
+      }
+    },
+    "averageDurationMinutes": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Shown as \"~N min\". Sorts the game into the Explore length filter: under 20, 20-45, over 45."
+    },
+    "difficultyToLearn": {
+      "type": "string",
+      "enum": ["Easy", "Medium", "Hard"],
+      "description": "Shown as \"Easy to learn\" and used by the Explore difficulty filter."
+    },
+    "minAge": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18,
+      "description": "Shown as \"Ages N+\". 0 means all ages."
+    },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+      },
+      "description": "Language codes for your game's text, like [\"en\"] or [\"en\", \"pt-BR\"]."
+    },
+    "minPlayers": { "not": {}, "description": "No longer supported. Use players.min." },
+    "maxPlayers": { "not": {}, "description": "No longer supported. Use players.max." },
+    "recommendedPlayers": { "not": {}, "description": "No longer supported. Use players.recommended." },
+    "shortDescription": { "not": {}, "description": "No longer supported. Use subtitle." },
+    "longDescription": { "not": {}, "description": "No longer supported. Use description." },
+    "seoDescription": { "not": {}, "description": "No longer supported. Use subtitle." },
+    "assets": { "not": {}, "description": "No longer supported. Use cover.png and gallery." }
+  }
+}

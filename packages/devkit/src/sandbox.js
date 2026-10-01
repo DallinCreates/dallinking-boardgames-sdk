@@ -22,7 +22,7 @@ export async function runSandbox({ cwd = process.cwd(), argv = process.argv.slic
     let GameEngine;
 
     try {
-        GameEngine = await loadSandboxEngine(cwd);
+        GameEngine = await loadSandboxEngine(cwd, { preferSource: isDev });
     } catch (error) {
         console.error(`❌ Error loading engine module:`, error.message);
         process.exit(1);
